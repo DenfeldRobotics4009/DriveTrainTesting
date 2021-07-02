@@ -9,15 +9,19 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.EncoderType;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Libraries.Speedmapper;
 
-public class DriveTrain extends SubsystemBase {
-  public CANSparkMax left1, left2, right1, right2;
-  public CANEncoder leftE1, leftE2, rightE1, rightE2;
+public class ArcadeDriveTrain extends SubsystemBase {
+
+  public drive mainDrive = new drive(10, 30);
+  public drive subDrive = new drive(9, 20);
+
+  public static CANSparkMax left1, left2, right1, right2;
+  public static CANEncoder leftE1, leftE2, rightE1, rightE2;
   public Speedmapper mapLeft1, mapLeft2, mapRight1, mapRight2;
-  public Boolean arcDBool = true;
-  public Double fr = 0.6, tr = 0.4, fullr = 0.5;
+  public Boolean dBool = true;
+  public static Double fr = 0.6, tr = 0.4, fullr = 0.5;
   public int countsPerRev = 42, PtoEScale = 5676;
 
   /** A new method of creating a drive train that
@@ -33,7 +37,7 @@ public class DriveTrain extends SubsystemBase {
    * @param twistRate the scale at which the robot will
    * turn.
    */
-  public DriveTrain(Double forwardRate, Double twistRate, Double fullRate) {
+  public ArcadeDriveTrain(Double forwardRate, Double twistRate, Double fullRate) {
     fr = forwardRate;
     tr = twistRate;
     fullr = fullRate;
@@ -43,10 +47,10 @@ public class DriveTrain extends SubsystemBase {
     right1 = new CANSparkMax(2, MotorType.kBrushless);
     right2 = new CANSparkMax(3, MotorType.kBrushless);
 
-    mapLeft1 = new Speedmapper(5676, 0.1, 1);
-    mapLeft2 = new Speedmapper(5676, 0.1, 1);
-    mapRight1 = new Speedmapper(5676, 0.1, 1);
-    mapRight2 = new Speedmapper(5676, 0.1, 1);
+    mapLeft1 = new Speedmapper(PtoEScale, 0.1, 1);
+    mapLeft2 = new Speedmapper(PtoEScale, 0.1, 1);
+    mapRight1 = new Speedmapper(PtoEScale, 0.1, 1);
+    mapRight2 = new Speedmapper(PtoEScale, 0.1, 1);
 
     leftE1 = left1.getEncoder(EncoderType.kHallSensor, countsPerRev);
     leftE2 = left2.getEncoder(EncoderType.kHallSensor, countsPerRev);
@@ -60,44 +64,41 @@ public class DriveTrain extends SubsystemBase {
   }
 
   @Override
-  public void periodic() {}
+  public void periodic() {
+    // Priority changes should be mentioned here
 
-  /**
-   * Arcade drive refers to a tank drive train robot being controlled
-   * by a single joystick, much like an arcade game.
-   * @param joystickY The virtical tilt of the joystick
-   * @param joystickZ The twist of the joystick
-   * @param UseSpeedMap if each motor should be matched. Useful for sensitive
-   * motor control systems.
-   * @param Interruptable if this module is allowed to be negated by other
-   * processes
-   * @param Priority The priority this will run in, will determine what other commands
-   * to negate
-   */
-  public void arcadeDrive(Double joystickY, Double  joystickZ, Boolean UseSpeedMap, Boolean Interruptable, int Priority){
-    if (arcDBool){
-      if (UseSpeedMap){
-        left1.set(mapLeft1.map(leftE1.getVelocity(), joystickY, joystickZ, fr, tr));
-        left2.set(mapLeft2.map(leftE2.getVelocity(), joystickY, joystickZ, fr, tr));
-        right1.set(mapRight1.map(rightE1.getVelocity(), joystickY, joystickZ, fr, tr));
-        right2.set(mapRight2.map(rightE2.getVelocity(), joystickY, joystickZ, fr, tr));
-      }else{
-        left1.set ((joystickY * fr + joystickZ * tr)/ fullr);
-        left2.set ((joystickY * fr - joystickZ * tr)/ fullr);
-        right1.set((joystickY * fr + joystickZ * tr)/ fullr);
-        right2.set((joystickY * fr - joystickZ * tr)/ fullr);
-      }
-    }
+    // Each drive instance should be mentioned here
+    mainDrive.periodic(subDrive);
+    subDrive.periodic(mainDrive);
+
+    SmartDashboard.putNumber("mainDrive Prio", mainDrive.pr);
+    
   }
 
-  //Override methods
-    public void arcadeDrive(Double joystickY, Double  joystickZ, Boolean Interruptable, int Priority){
-      arcadeDrive(joystickY, joystickZ, false , Interruptable, Priority);}
-    public void arcadeDrive(Double joystickY, Double  joystickZ, Boolean UseSpeedMap){
-      arcadeDrive(joystickY, joystickZ, UseSpeedMap, false , 10);}
-    public void arcadeDrive(Double joystickY, Double joystickZ){
-      arcadeDrive(joystickY, joystickZ, false, false, 10);}
-  //
+  /**
+   * Drives the robot using Y (tilt up and down) and Z (rotation left and right)
+   * @param joystickY tilt up and down
+   * @param joystickZ tilt left and right
+   * @param useSpeedMap if it should match all values of each motor to a target
+   */
+  public void arcadeDrive(Double joystickY, Double joystickZ, Boolean useSpeedMap){
+    if (useSpeedMap){mainDrive.arcdrive(joystickY, joystickZ, mapLeft1, mapLeft2, mapRight1, mapRight2);}
+    else{mainDrive.arcdrive(joystickY, joystickZ);}
+  }
+
+  /**
+   * Will drive the robot using raw inputs into the motors
+   * @param leftA left1
+   * @param leftB left2
+   * @param rightA right1
+   * @param rightB right2
+   */
+  public static void drive(Double leftA, Double leftB, Double rightA, Double rightB){
+    left1.set(leftA);
+    left2.set(leftB);
+    right1.set(rightA);
+    right2.set(rightB);
+  }
 
   /**
    * Sets the scale at which the robot applies its
@@ -122,6 +123,92 @@ public class DriveTrain extends SubsystemBase {
   public void setFullRate(double rate){fullr = rate;}
 }
 
+class drive {
+  int finalpr = 0; 
+  int pr = 0;
+  int subpr = 0;
+  boolean allow = true;
+
+  /**
+   * Creates instance of a drive controller
+   * @param priority Main priority of the instance
+   * @param subPriority Priority of instance if equal to other priorities
+   */
+  public drive(int priority, int subPriority){
+    subpr = subPriority;
+    pr = priority;
+    finalpr = priority;
+  }
+
+  /**
+   * Checks if this instance should be ran, if another object has a higher
+   * priority it will not run.
+   * @param objects All instances of other arcadeDrives
+   */
+  public void periodic(drive... objects){
+    for (drive i : objects){
+      if (i.pr > pr){allow = false;} // Checks with other instances to see if it should be prioritized
+
+      else if (i.pr == pr){ // Checks with subpr if theyre equal
+        if (i.subpr > pr){allow = false;}
+        else{allow = true;}
+      }
+
+      else{allow = true;}
+    }
+  }
+
+  /**
+   * Arcade drive refers to a tank drive train robot being controlled
+   * by a single joystick, much like an arcade game.
+   * @param map speedmapper instances for all 4 motors
+   */
+  public void arcdrive(Double joystickY, Double  joystickZ,
+                      Speedmapper mapLeft1, Speedmapper mapLeft2, Speedmapper mapRight1, Speedmapper mapRight2){
+  if (joystickY == 0 && joystickZ == 0){ // If not running, will set priority to 0
+    ArcadeDriveTrain.drive(0.0, 0.0, 0.0, 0.0);
+    setPriority(0);
+  }else{setPriority(finalpr);} // resets pr back
+  
+  if (allow) {
+
+      ArcadeDriveTrain.drive(
+        mapLeft1.map(ArcadeDriveTrain.leftE1.getVelocity(), joystickY, joystickZ, ArcadeDriveTrain.fr, ArcadeDriveTrain.tr, ArcadeDriveTrain.fullr), 
+        mapLeft2.map(ArcadeDriveTrain.leftE2.getVelocity(), joystickY, -joystickZ, ArcadeDriveTrain.fr, ArcadeDriveTrain.tr, ArcadeDriveTrain.fullr),
+        mapRight1.map(ArcadeDriveTrain.rightE1.getVelocity(), joystickY, joystickZ, ArcadeDriveTrain.fr, ArcadeDriveTrain.tr, ArcadeDriveTrain.fullr),
+        mapRight2.map(ArcadeDriveTrain.rightE2.getVelocity(), joystickY, -joystickZ, ArcadeDriveTrain.fr, ArcadeDriveTrain.tr, ArcadeDriveTrain.fullr));
+      
+    }
+  }
+
+  /**
+   * Arcade drive refers to a tank drive train robot being controlled
+   * by a single joystick, much like an arcade game.
+   */
+  public void arcdrive(Double joystickY, Double  joystickZ){
+  if (joystickY == 0 && joystickZ == 0){ // If not running, will set priority to 0
+    ArcadeDriveTrain.drive(0.0, 0.0, 0.0, 0.0);
+    setPriority(0);
+  }else{setPriority(finalpr);} // resets pr back
+  
+  if (allow) {
+
+      ArcadeDriveTrain.drive(
+        (joystickY * ArcadeDriveTrain.fr + joystickZ * ArcadeDriveTrain.tr)* ArcadeDriveTrain.fullr,
+        (joystickY * ArcadeDriveTrain.fr - joystickZ * ArcadeDriveTrain.tr)* ArcadeDriveTrain.fullr,
+        (joystickY * ArcadeDriveTrain.fr + joystickZ * ArcadeDriveTrain.tr)* ArcadeDriveTrain.fullr,
+        (joystickY * ArcadeDriveTrain.fr - joystickZ * ArcadeDriveTrain.tr)* ArcadeDriveTrain.fullr
+      );
+      
+    }
+  }
+
+  /**
+   * Sets the priority of this instance
+   * @param priority int of prio. Higher the more favored
+   */
+  public void setPriority(int priority){pr = priority;}
+}
 
 class Speedmapper {
   public int pte = 5676, tolerance_ = 0;
@@ -145,8 +232,8 @@ class Speedmapper {
    * @param Trate the twist rate, generally equal to twistRate.
    * @param tolerance the allowed difference between the val and joystick.
    */
-  public double map(Double encoderval, Double JoystickF, Double JoystickT, Double Frate, Double Trate){
-      Double target = (JoystickF * Frate + JoystickT * Trate) * pte;
+  public double map(Double encoderval, Double JoystickF, Double JoystickT, Double Frate, Double Trate, Double FullRate){
+      Double target = ((JoystickF * Frate + JoystickT * Trate) * FullRate) * pte;
 
       if (encoderval < target - tolerance_){
           count = count + delta_;
@@ -158,8 +245,4 @@ class Speedmapper {
       return (JoystickF * Frate + JoystickT * Trate) + count;
   }
   
-}
-
-class Sensor {
-
 }
