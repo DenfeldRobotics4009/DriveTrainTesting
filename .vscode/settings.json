@@ -13,5 +13,10 @@
     "**/.settings": true,
     "**/.factorypath": true,
     "**/*~": true
+  },
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#160040",
+    "titleBar.activeBackground": "#1D0053",
+    "titleBar.activeForeground": "#FDFCFF"
   }
 }
