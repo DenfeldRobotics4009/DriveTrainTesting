@@ -9,7 +9,6 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.EncoderType;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
-import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -22,8 +21,7 @@ public class ArcadeDriveTrain extends SubsystemBase {
   public static CANSparkMax left1, left2, right1, right2;
   public static CANEncoder leftE1, leftE2, rightE1, rightE2;
   public Speedmapper mapLeft1, mapLeft2, mapRight1, mapRight2;
-  public Boolean dBool = true;
-  public static Double fr = 0.6, tr = 0.4, fullr = 0.5;
+  public static Double fr, tr, fullr;
   public int countsPerRev = 42, PtoEScale = 5676;
 
   public Double pubJoystickY, pubJoystickZ;
@@ -37,9 +35,11 @@ public class ArcadeDriveTrain extends SubsystemBase {
    * @apiNote Call in robotcontainer and nowhere else.
    * 
    * @param forwardRate the scale at which the robot
-   * moves forward.
+   * moves forward. Recomended ≈ 0.6
    * @param twistRate the scale at which the robot will
-   * turn.
+   * turn. Recomended ≈ 0.4
+   * @param fullRate the full scale of the robots
+   * movements. Recomended ≈ 0.5
    */
   public ArcadeDriveTrain(Double forwardRate, Double twistRate, Double fullRate) {
     fr = forwardRate;
@@ -69,38 +69,34 @@ public class ArcadeDriveTrain extends SubsystemBase {
 
   @Override
   public void periodic() {
-    Double encoderAverage = // Collect average and round to int
-      getResistance(leftE1, scale("left1")) + 
-      getResistance(leftE2, scale("left2")) + 
-      getResistance(rightE1, scale("right1")) + 
-      getResistance(rightE2, scale("right2")) / 4;
+
+    Double[] s_ = {scale("left1"), scale("left2"), scale("right1"), scale("right2")}; // Scaled to input settings
+    Double[] r_ = {getResistance(leftE1, s_[0]), getResistance(leftE2, s_[1]), getResistance(rightE1, s_[2]), getResistance(rightE2, s_[3])}; // Altered to resistance
+
+    Double encoderAverage = r_[0] + r_[1] + r_[2] + r_[3] / 4; // Collect average and round to int
 
     // Priority changes should be mentioned here
     reactionDrive.setPriority((int) Math.round(encoderAverage));
-
     // Each drive instance should be mentioned here
     mainDrive.periodic(subDrive, reactionDrive);
     subDrive.periodic(mainDrive, reactionDrive);
     reactionDrive.periodic(mainDrive, subDrive);
     // Drive updates should be mentioned here
-    reactionDrive.mandrive(
-      getResistance(leftE1, scale("left1")),
-      getResistance(leftE2, scale("left2")),
-      getResistance(rightE1, scale("right1")),
-      getResistance(rightE2, scale("right2")));
+    reactionDrive.mandrive(r_[0], r_[1], r_[2], r_[3]);
 
     SmartDashboard.putNumber("mainDrive Prio", mainDrive.pr);
     
   }
 
   /**
+   * Should be default (For joystick value reasons)
    * Drives the robot using Y (tilt up and down) and Z (rotation left and right)
    * @param joystickY tilt up and down
    * @param joystickZ tilt left and right
    * @param useSpeedMap if it should match all values of each motor to a target
    */
   public void arcadeDrive(Double joystickY, Double joystickZ, Boolean useSpeedMap){
-    pubJoystickY = joystickY;
+    pubJoystickY = joystickY; // Grabs inputs regardless of priorities
     pubJoystickZ = joystickZ;
 
     if (useSpeedMap){mainDrive.arcdrive(joystickY, joystickZ, mapLeft1, mapLeft2, mapRight1, mapRight2);}
