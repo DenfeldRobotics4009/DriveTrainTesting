@@ -9,6 +9,7 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.EncoderType;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -24,6 +25,8 @@ public class ArcadeDriveTrain extends SubsystemBase {
   public Boolean dBool = true;
   public static Double fr = 0.6, tr = 0.4, fullr = 0.5;
   public int countsPerRev = 42, PtoEScale = 5676;
+
+  public Double pubJoystickY, pubJoystickZ;
 
   /** A new method of creating a drive train that
    * will allow more fluid controls and better
@@ -67,10 +70,10 @@ public class ArcadeDriveTrain extends SubsystemBase {
   @Override
   public void periodic() {
     Double encoderAverage = // Collect average and round to int
-      getResistance(leftE1, left1) + 
-      getResistance(leftE2, left2) + 
-      getResistance(rightE1, right1) + 
-      getResistance(rightE2, right2) / 4;
+      getResistance(leftE1, scale("left1")) + 
+      getResistance(leftE2, scale("left2")) + 
+      getResistance(rightE1, scale("right1")) + 
+      getResistance(rightE2, scale("right2")) / 4;
 
     // Priority changes should be mentioned here
     reactionDrive.setPriority((int) Math.round(encoderAverage));
@@ -80,7 +83,11 @@ public class ArcadeDriveTrain extends SubsystemBase {
     subDrive.periodic(mainDrive, reactionDrive);
     reactionDrive.periodic(mainDrive, subDrive);
     // Drive updates should be mentioned here
-    reactionDrive.mandrive(getResistance(leftE1, left1), getResistance(leftE2, left2), getResistance(rightE1, right1), getResistance(rightE2, right2));
+    reactionDrive.mandrive(
+      getResistance(leftE1, scale("left1")),
+      getResistance(leftE2, scale("left2")),
+      getResistance(rightE1, scale("right1")),
+      getResistance(rightE2, scale("right2")));
 
     SmartDashboard.putNumber("mainDrive Prio", mainDrive.pr);
     
@@ -93,6 +100,9 @@ public class ArcadeDriveTrain extends SubsystemBase {
    * @param useSpeedMap if it should match all values of each motor to a target
    */
   public void arcadeDrive(Double joystickY, Double joystickZ, Boolean useSpeedMap){
+    pubJoystickY = joystickY;
+    pubJoystickZ = joystickZ;
+
     if (useSpeedMap){mainDrive.arcdrive(joystickY, joystickZ, mapLeft1, mapLeft2, mapRight1, mapRight2);}
     else{mainDrive.arcdrive(joystickY, joystickZ);}
   }
@@ -133,10 +143,24 @@ public class ArcadeDriveTrain extends SubsystemBase {
    */
   public void setFullRate(double rate){fullr = rate;}
 
-  public Double getResistance(CANEncoder encoder, CANSparkMax motor){
+  /**
+   * Gets the applied power and compares it to the actual speed of the motors
+   * @param encoder the encoder instance
+   * @param applied the power being applied to the robot
+   * @return returns the offset of expected power and applied power
+   */
+  public Double getResistance(CANEncoder encoder, Double applied){
     // motor should always be zero unless priority is set higher
-    Double actualToPowerOffset = motor.get() - encoder.getVelocity()/PtoEScale;
-    return motor.get() + actualToPowerOffset;
+    Double actualToPowerOffset = applied - encoder.getVelocity()/PtoEScale;
+    return applied + actualToPowerOffset;
+  }
+
+  public Double scale(String motorPosition){
+    int factor = 1;
+    if (motorPosition == "left2"){factor = -1;}
+    if (motorPosition == "right2"){factor = -1;}
+    
+    return (pubJoystickY * fr + pubJoystickZ * factor) * fullr;
   }
 }
 
