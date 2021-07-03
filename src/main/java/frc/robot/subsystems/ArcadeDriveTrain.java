@@ -266,6 +266,13 @@ class Speedmapper {
   public int pte = 5676, tolerance_ = 0;
   public double count = 0, delta_ = 0.1;
 
+  /**
+   * A fix for speedmapping that uses a controlled base to map speeds from.
+   * Using a class so that each instance can have its own data
+   * @param PtoEScale scale of encoder
+   * @param delta change to try
+   * @param tolerance allowed error
+   */
   public Speedmapper(int PtoEScale, Double delta, int tolerance){
       pte = PtoEScale;
       count = 0; // Count starts always at 0
@@ -296,5 +303,4 @@ class Speedmapper {
 
       return (JoystickF * Frate + JoystickT * Trate) + count;
   }
-  
 }
