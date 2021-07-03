@@ -156,7 +156,7 @@ public class ArcadeDriveTrain extends SubsystemBase {
     if (motorPosition == "left2"){factor = -1;}
     if (motorPosition == "right2"){factor = -1;}
     
-    return (pubJoystickY * fr + pubJoystickZ * factor) * fullr;
+    return (pubJoystickY * fr + (pubJoystickZ * factor) * tr) * fullr;
   }
 }
 
