@@ -14,14 +14,16 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class ArcadeDriveTrain extends SubsystemBase {
 
+  // Initialize drive instances here
   public drive mainDrive = new drive(10, 30, true);
   public drive subDrive = new drive(4, 20, true);
   public drive reactionDrive = new drive(5, 40, false);
 
+  public static Double fr, tr, fullr;
   public static CANSparkMax left1, left2, right1, right2;
   public static CANEncoder leftE1, leftE2, rightE1, rightE2;
   public Speedmapper mapLeft1, mapLeft2, mapRight1, mapRight2;
-  public static Double fr, tr, fullr;
+  
   public int countsPerRev = 42, PtoEScale = 5676;
 
   public Double pubJoystickY, pubJoystickZ;
