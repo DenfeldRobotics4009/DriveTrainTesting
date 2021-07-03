@@ -261,7 +261,10 @@ class drive {
    * Sets the priority of this instance
    * @param priority int of prio. Higher the more favored
    */
-  public void setPriority(int priority){pr = priority;}
+  public void setPriority(int priority){
+    pr = priority;
+    finalpr = priority;
+  }
 }
 
 class Speedmapper {
