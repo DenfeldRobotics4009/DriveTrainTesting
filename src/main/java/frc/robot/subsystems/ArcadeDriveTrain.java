@@ -14,8 +14,9 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class ArcadeDriveTrain extends SubsystemBase {
 
-  public drive mainDrive = new drive(10, 30);
-  public drive subDrive = new drive(9, 20);
+  public drive mainDrive = new drive(10, 30, true);
+  public drive subDrive = new drive(4, 20, true);
+  public drive reactionDrive = new drive(5, 40, false);
 
   public static CANSparkMax left1, left2, right1, right2;
   public static CANEncoder leftE1, leftE2, rightE1, rightE2;
@@ -65,11 +66,21 @@ public class ArcadeDriveTrain extends SubsystemBase {
 
   @Override
   public void periodic() {
+    Double encoderAverage = // Collect average and round to int
+      getResistance(leftE1, left1) + 
+      getResistance(leftE2, left2) + 
+      getResistance(rightE1, right1) + 
+      getResistance(rightE2, right2) / 4;
+
     // Priority changes should be mentioned here
+    reactionDrive.setPriority((int) Math.round(encoderAverage));
 
     // Each drive instance should be mentioned here
-    mainDrive.periodic(subDrive);
-    subDrive.periodic(mainDrive);
+    mainDrive.periodic(subDrive, reactionDrive);
+    subDrive.periodic(mainDrive, reactionDrive);
+    reactionDrive.periodic(mainDrive, subDrive);
+    // Drive updates should be mentioned here
+    reactionDrive.mandrive(getResistance(leftE1, left1), getResistance(leftE2, left2), getResistance(rightE1, right1), getResistance(rightE2, right2));
 
     SmartDashboard.putNumber("mainDrive Prio", mainDrive.pr);
     
@@ -121,23 +132,29 @@ public class ArcadeDriveTrain extends SubsystemBase {
    * @param rate percentage of power to apply wtih 1 being 100%
    */
   public void setFullRate(double rate){fullr = rate;}
+
+  public Double getResistance(CANEncoder encoder, CANSparkMax motor){
+    // motor should always be zero unless priority is set higher
+    Double actualToPowerOffset = motor.get() - encoder.getVelocity()/PtoEScale;
+    return motor.get() + actualToPowerOffset;
+  }
 }
 
 class drive {
-  int finalpr = 0; 
-  int pr = 0;
-  int subpr = 0;
-  boolean allow = true;
+  int finalpr, pr, subpr;
+  boolean interrupt_, allow;
 
   /**
    * Creates instance of a drive controller
    * @param priority Main priority of the instance
    * @param subPriority Priority of instance if equal to other priorities
+   * @param interrupt If the instance will end lower prioritized tasks
    */
-  public drive(int priority, int subPriority){
+  public drive(int priority, int subPriority, Boolean interrupt){
     subpr = subPriority;
     pr = priority;
     finalpr = priority;
+    interrupt_ = interrupt;
   }
 
   /**
@@ -146,14 +163,12 @@ class drive {
    * @param objects All instances of other arcadeDrives
    */
   public void periodic(drive... objects){
-    for (drive i : objects){
-      if (i.pr > pr){allow = false;} // Checks with other instances to see if it should be prioritized
-
-      else if (i.pr == pr){ // Checks with subpr if theyre equal
+    for (drive i : objects){ // i.interrupt is added to check if i wants the other process to be interrupted
+      if (i.pr > pr && i.interrupt_){allow = false;} // Checks with other instances to see if it should be prioritized
+      else if (i.pr == pr && i.interrupt_){ // Checks with subpr if theyre equal
         if (i.subpr > pr){allow = false;}
         else{allow = true;}
       }
-
       else{allow = true;}
     }
   }
@@ -185,7 +200,7 @@ class drive {
    * Arcade drive refers to a tank drive train robot being controlled
    * by a single joystick, much like an arcade game.
    */
-  public void arcdrive(Double joystickY, Double  joystickZ){
+  public void arcdrive(Double joystickY, Double  joystickZ){ // Override method
   if (joystickY == 0 && joystickZ == 0){ // If not running, will set priority to 0
     ArcadeDriveTrain.drive(0.0, 0.0, 0.0, 0.0);
     setPriority(0);
@@ -203,6 +218,23 @@ class drive {
     }
   }
 
+  /**
+   * Manual controls for all motors
+   * @param left1 motor power val
+   * @param left2 motor power val 
+   * @param right1 motor power val
+   * @param right2 motor power val
+   */ 
+  public void mandrive(Double left1, Double left2, Double right1, Double right2){
+    if (left1 == 0 && left2 == 0 && right1 == 0 && right2 == 0){ // If not running, will set priority to 0
+      ArcadeDriveTrain.drive(0.0, 0.0, 0.0, 0.0);
+      setPriority(0);
+    }else{setPriority(finalpr);} // resets pr back
+    
+    if (allow) {
+      ArcadeDriveTrain.drive(left1, left2, right1, right2);
+    }
+  }
   /**
    * Sets the priority of this instance
    * @param priority int of prio. Higher the more favored
@@ -224,7 +256,7 @@ class Speedmapper {
   /**
    * Uses encoders to scale values of motors to all match, usefull
    * when motor values have to be exact
-   * @requires Encoders on each drivetrain motors
+   * @apiNote Requires encoders on each drivetrain motors
    * @param encoderval the encoder value of the val motor
    * @param JoystickF forward joystick used to create a target to match the value to
    * @param JoystickT twist joystick used to create a target to match the value to
