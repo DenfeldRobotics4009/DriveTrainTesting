@@ -26,7 +26,7 @@ public class ArcadeDriveTrain extends SubsystemBase {
   
   public int countsPerRev = 42, PtoEScale = 5676;
 
-  public Double pubJoystickY, pubJoystickZ;
+  public static Double pubJoystickY, pubJoystickZ;
 
   /** A new method of creating a drive train that
    * will allow more fluid controls and better
@@ -153,12 +153,29 @@ public class ArcadeDriveTrain extends SubsystemBase {
     return applied + actualToPowerOffset;
   }
 
-  public Double scale(String motorPosition){
+  /**
+   * Scales the raw power to the settings defined.
+   * @param motorPosition left1, left2, right1, right2
+   * @return Scaled power val to be used by motors
+   */
+  public static Double scale(String motorPosition){
     int factor = 1;
     if (motorPosition == "left2"){factor = -1;}
     if (motorPosition == "right2"){factor = -1;}
     
     return (pubJoystickY * fr + (pubJoystickZ * factor) * tr) * fullr;
+  }
+
+  /**
+   * Scales the raw power to the settings defined.
+   * @param motorPosition left1, left2, right1, right2
+   * @return Scaled power val to be used by motors
+   */
+  public static Double scale(String motorPosition, Double joystickY, Double joystickZ){
+    int factor = 1;
+    if (motorPosition == "left2" || motorPosition == "right2"){factor = -1;}
+    
+    return (joystickY * fr + (joystickZ * factor) * tr) * fullr;
   }
 }
 
@@ -210,10 +227,10 @@ class drive {
   if (allow) {
 
       ArcadeDriveTrain.drive(
-        mapLeft1.map(ArcadeDriveTrain.leftE1.getVelocity(), joystickY, joystickZ, ArcadeDriveTrain.fr, ArcadeDriveTrain.tr, ArcadeDriveTrain.fullr), 
-        mapLeft2.map(ArcadeDriveTrain.leftE2.getVelocity(), joystickY, -joystickZ, ArcadeDriveTrain.fr, ArcadeDriveTrain.tr, ArcadeDriveTrain.fullr),
-        mapRight1.map(ArcadeDriveTrain.rightE1.getVelocity(), joystickY, joystickZ, ArcadeDriveTrain.fr, ArcadeDriveTrain.tr, ArcadeDriveTrain.fullr),
-        mapRight2.map(ArcadeDriveTrain.rightE2.getVelocity(), joystickY, -joystickZ, ArcadeDriveTrain.fr, ArcadeDriveTrain.tr, ArcadeDriveTrain.fullr));
+        mapLeft1.map(ArcadeDriveTrain.leftE1.getVelocity(), joystickY, joystickZ), 
+        mapLeft2.map(ArcadeDriveTrain.leftE2.getVelocity(), joystickY, -joystickZ),
+        mapRight1.map(ArcadeDriveTrain.rightE1.getVelocity(), joystickY, joystickZ),
+        mapRight2.map(ArcadeDriveTrain.rightE2.getVelocity(), joystickY, -joystickZ));
       
     }
   }
@@ -231,10 +248,10 @@ class drive {
   if (allow) {
 
       ArcadeDriveTrain.drive(
-        (joystickY * ArcadeDriveTrain.fr + joystickZ * ArcadeDriveTrain.tr)* ArcadeDriveTrain.fullr,
-        (joystickY * ArcadeDriveTrain.fr - joystickZ * ArcadeDriveTrain.tr)* ArcadeDriveTrain.fullr,
-        (joystickY * ArcadeDriveTrain.fr + joystickZ * ArcadeDriveTrain.tr)* ArcadeDriveTrain.fullr,
-        (joystickY * ArcadeDriveTrain.fr - joystickZ * ArcadeDriveTrain.tr)* ArcadeDriveTrain.fullr
+        ArcadeDriveTrain.scale("left1", joystickY, joystickZ),
+        ArcadeDriveTrain.scale("left2", joystickY, joystickZ),
+        ArcadeDriveTrain.scale("right1", joystickY, joystickZ),
+        ArcadeDriveTrain.scale("right2", joystickY, joystickZ)
       );
       
     }
@@ -296,16 +313,21 @@ class Speedmapper {
    * @param Trate the twist rate, generally equal to twistRate.
    * @param tolerance the allowed difference between the val and joystick.
    */
-  public double map(Double encoderval, Double JoystickF, Double JoystickT, Double Frate, Double Trate, Double FullRate){
-      Double target = ((JoystickF * Frate + JoystickT * Trate) * FullRate) * pte;
+  public double map(Double encoderval, Double JoystickF, Double JoystickT){
 
-      if (encoderval < target - tolerance_){
-          count = count + delta_;
-      }
-      else if (encoderval > target + tolerance_){
-          count = count - delta_;
-      }
+    Double Frate = ArcadeDriveTrain.fr;
+    Double Trate = ArcadeDriveTrain.tr;
+    Double FullRate = ArcadeDriveTrain.fullr;
 
-      return (JoystickF * Frate + JoystickT * Trate) + count;
+    Double target = ((JoystickF * Frate + JoystickT * Trate) * FullRate) * pte;
+
+    if (encoderval < target - tolerance_){
+        count = count + delta_;
+    }
+    else if (encoderval > target + tolerance_){
+        count = count - delta_;
+    }
+
+    return (JoystickF * Frate + JoystickT * Trate) + count;
   }
 }
