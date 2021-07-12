@@ -7,10 +7,11 @@ package frc.robot;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
-import frc.robot.commands.ExampleCommand;
-import frc.robot.subsystems.ExampleSubsystem;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+import frc.robot.commands.ManualArcadeDrive;
+import frc.robot.subsystems.ArcadeDriveTrain;
+
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -20,10 +21,12 @@ import edu.wpi.first.wpilibj2.command.button.JoystickButton;
  * commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
-  // The robot's subsystems and commands are defined here...
-  private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
 
-  private final ExampleCommand m_autoCommand = new ExampleCommand(m_exampleSubsystem);
+  Joystick driver = new Joystick(0);
+  Joystick operator = new Joystick(1);
+
+  // The robot's subsystems and commands are defined here...
+  private final ArcadeDriveTrain driveTrain = new ArcadeDriveTrain(0.6, 0.4, 0.5);
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -31,6 +34,12 @@ public class RobotContainer {
   public RobotContainer() {
     // Configure the button bindings
     configureButtonBindings();
+
+    driveTrain.setDefaultCommand(new ManualArcadeDrive( driveTrain,
+      () -> driver.getY(),
+      () -> driver.getZ()
+    )
+    );
   }
 
   /**
@@ -41,31 +50,28 @@ public class RobotContainer {
    */
   private void configureButtonBindings() {
 
-    Joystick driver = new Joystick(0);
-    Joystick operator = new Joystick(1);
-
-    JoystickButton d1 = new JoystickButton(driver, 1 );
-    JoystickButton d2 = new JoystickButton(driver, 2 );
-    JoystickButton d3 = new JoystickButton(driver, 3 );
-    JoystickButton d4 = new JoystickButton(driver, 4 );
-    JoystickButton d5 = new JoystickButton(driver, 5 );
-    JoystickButton d6 = new JoystickButton(driver, 6 );
-    JoystickButton d7 = new JoystickButton(driver, 7 );
-    JoystickButton d8 = new JoystickButton(driver, 8 );
-    JoystickButton d9 = new JoystickButton(driver, 9 );
+    JoystickButton d1 = new JoystickButton(driver, 1);
+    JoystickButton d2 = new JoystickButton(driver, 2);
+    JoystickButton d3 = new JoystickButton(driver, 3);
+    JoystickButton d4 = new JoystickButton(driver, 4);
+    JoystickButton d5 = new JoystickButton(driver, 5);
+    JoystickButton d6 = new JoystickButton(driver, 6);
+    JoystickButton d7 = new JoystickButton(driver, 7);
+    JoystickButton d8 = new JoystickButton(driver, 8);
+    JoystickButton d9 = new JoystickButton(driver, 9);
     JoystickButton d10= new JoystickButton(driver, 10);
     JoystickButton d11= new JoystickButton(driver, 11);
     JoystickButton d12= new JoystickButton(driver, 12);
 
-    JoystickButton o1 = new JoystickButton(operator, 1 );
-    JoystickButton o2 = new JoystickButton(operator, 2 );
-    JoystickButton o3 = new JoystickButton(operator, 3 );
-    JoystickButton o4 = new JoystickButton(operator, 4 );
-    JoystickButton o5 = new JoystickButton(operator, 5 );
-    JoystickButton o6 = new JoystickButton(operator, 6 );
-    JoystickButton o7 = new JoystickButton(operator, 7 );
-    JoystickButton o8 = new JoystickButton(operator, 8 );
-    JoystickButton o9 = new JoystickButton(operator, 9 );
+    JoystickButton o1 = new JoystickButton(operator, 1);
+    JoystickButton o2 = new JoystickButton(operator, 2);
+    JoystickButton o3 = new JoystickButton(operator, 3);
+    JoystickButton o4 = new JoystickButton(operator, 4);
+    JoystickButton o5 = new JoystickButton(operator, 5);
+    JoystickButton o6 = new JoystickButton(operator, 6);
+    JoystickButton o7 = new JoystickButton(operator, 7);
+    JoystickButton o8 = new JoystickButton(operator, 8);
+    JoystickButton o9 = new JoystickButton(operator, 9);
     JoystickButton o10= new JoystickButton(operator, 10);
     JoystickButton o11= new JoystickButton(operator, 11);
     JoystickButton o12= new JoystickButton(operator, 12);
@@ -78,6 +84,6 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // An ExampleCommand will run in autonomous
-    return m_autoCommand;
+    return null; // TODO: auto
   }
 }

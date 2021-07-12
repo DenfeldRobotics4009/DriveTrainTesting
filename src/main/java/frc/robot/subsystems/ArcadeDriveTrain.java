@@ -78,7 +78,7 @@ public class ArcadeDriveTrain extends SubsystemBase {
     Double encoderAverage = r_[0] + r_[1] + r_[2] + r_[3] / 4; // Collect average and round to int
 
     // Priority changes should be mentioned here
-    reactionDrive.setPriority((int) Math.round(encoderAverage));
+    reactionDrive.setPriority((int) Math.round(encoderAverage)); 
     // Each drive instance should be mentioned here
     mainDrive.periodic(subDrive, reactionDrive);
     subDrive.periodic(mainDrive, reactionDrive);
@@ -177,6 +177,20 @@ public class ArcadeDriveTrain extends SubsystemBase {
     
     return (joystickY * fr + (joystickZ * factor) * tr) * fullr;
   }
+
+  // Override method
+  /**
+   * Scales the raw power to the settings defined.
+   * @param motorPosition left1, left2, right1, right2
+   * @return Scaled power val to be used by motors
+   */
+  public static Double scale(String motorPosition, Double joystickY, Double joystickZ, Double fr_, Double tr_, Double fullr_){
+    int factor = 1;
+    if (motorPosition == "left2" || motorPosition == "right2"){factor = -1;}
+    
+    return (joystickY * fr_ + (joystickZ * factor) * tr_) * fullr_;
+  }
+
 }
 
 class drive {
@@ -217,8 +231,7 @@ class drive {
    * by a single joystick, much like an arcade game.
    * @param map speedmapper instances for all 4 motors
    */
-  public void arcdrive(Double joystickY, Double  joystickZ,
-                      Speedmapper mapLeft1, Speedmapper mapLeft2, Speedmapper mapRight1, Speedmapper mapRight2){
+  public void arcdrive(Double joystickY, Double  joystickZ, Speedmapper mapLeft1, Speedmapper mapLeft2, Speedmapper mapRight1, Speedmapper mapRight2){
   if (joystickY == 0 && joystickZ == 0){ // If not running, will set priority to 0
     ArcadeDriveTrain.drive(0.0, 0.0, 0.0, 0.0);
     setPriority(0);
@@ -227,10 +240,10 @@ class drive {
   if (allow) {
 
       ArcadeDriveTrain.drive(
-        mapLeft1.map(ArcadeDriveTrain.leftE1.getVelocity(), joystickY, joystickZ), 
-        mapLeft2.map(ArcadeDriveTrain.leftE2.getVelocity(), joystickY, -joystickZ),
-        mapRight1.map(ArcadeDriveTrain.rightE1.getVelocity(), joystickY, joystickZ),
-        mapRight2.map(ArcadeDriveTrain.rightE2.getVelocity(), joystickY, -joystickZ));
+        mapLeft1.map("left1",ArcadeDriveTrain.leftE1.getVelocity(), joystickY, joystickZ), 
+        mapLeft2.map("left2",ArcadeDriveTrain.leftE2.getVelocity(), joystickY, -joystickZ),
+        mapRight1.map("right1",ArcadeDriveTrain.rightE1.getVelocity(), joystickY, joystickZ),
+        mapRight2.map("right2",ArcadeDriveTrain.rightE2.getVelocity(), joystickY, -joystickZ));
       
     }
   }
@@ -280,11 +293,13 @@ class drive {
    */
   public void setPriority(int priority){
     pr = priority;
-    finalpr = priority;
   }
 }
 
 class Speedmapper {
+
+  //TODO: use PID?
+
   public int pte = 5676, tolerance_ = 0;
   public double count = 0, delta_ = 0.1;
 
@@ -306,6 +321,7 @@ class Speedmapper {
    * Uses encoders to scale values of motors to all match, usefull
    * when motor values have to be exact
    * @apiNote Requires encoders on each drivetrain motors
+   * @param MotorPosition left1, left2, right1, right2
    * @param encoderval the encoder value of the val motor
    * @param JoystickF forward joystick used to create a target to match the value to
    * @param JoystickT twist joystick used to create a target to match the value to
@@ -313,13 +329,14 @@ class Speedmapper {
    * @param Trate the twist rate, generally equal to twistRate.
    * @param tolerance the allowed difference between the val and joystick.
    */
-  public double map(Double encoderval, Double JoystickF, Double JoystickT){
+  public double map( String MotorPosition, Double encoderval, Double JoystickF, Double JoystickT){
 
-    Double Frate = ArcadeDriveTrain.fr;
+    Double Frate = ArcadeDriveTrain.fr; 
     Double Trate = ArcadeDriveTrain.tr;
     Double FullRate = ArcadeDriveTrain.fullr;
 
-    Double target = ((JoystickF * Frate + JoystickT * Trate) * FullRate) * pte;
+    Double target = (ArcadeDriveTrain.scale(MotorPosition, JoystickF, JoystickT, Frate, Trate, FullRate) * pte);
+    // ((JoystickF * Frate + JoystickT * Trate) * FullRate) * pte;
 
     if (encoderval < target - tolerance_){
         count = count + delta_;
@@ -328,6 +345,6 @@ class Speedmapper {
         count = count - delta_;
     }
 
-    return (JoystickF * Frate + JoystickT * Trate) + count;
+    return ((JoystickF * Frate + JoystickT * Trate) * FullRate) + count;
   }
 }
