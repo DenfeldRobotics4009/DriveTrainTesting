@@ -15,8 +15,8 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class ArcadeDriveTrain extends SubsystemBase {
 
   // Initialize drive instances here
-  public drive mainDrive = new drive(10, 30, true);
-  public drive subDrive = new drive(4, 20, true);
+  public drive mainDrive =     new drive(10, 30, true);
+  public drive subDrive =      new drive(4, 20, true);
   public drive reactionDrive = new drive(5, 40, false);
 
   public static Double fr, tr, fullr;
@@ -159,11 +159,7 @@ public class ArcadeDriveTrain extends SubsystemBase {
    * @return Scaled power val to be used by motors
    */
   public static Double scale(String motorPosition){
-    int factor = 1;
-    if (motorPosition == "left2"){factor = -1;}
-    if (motorPosition == "right2"){factor = -1;}
-    
-    return (pubJoystickY * fr + (pubJoystickZ * factor) * tr) * fullr;
+    return __scale__(pubJoystickY, pubJoystickZ, fr, tr, fullr, motorPosition);
   }
 
   /**
@@ -172,23 +168,22 @@ public class ArcadeDriveTrain extends SubsystemBase {
    * @return Scaled power val to be used by motors
    */
   public static Double scale(String motorPosition, Double joystickY, Double joystickZ){
-    int factor = 1;
-    if (motorPosition == "left2" || motorPosition == "right2"){factor = -1;}
-    
-    return (joystickY * fr + (joystickZ * factor) * tr) * fullr;
+    return __scale__(joystickY, joystickZ, fr, tr, fullr, motorPosition);
   }
 
-  // Override method
   /**
    * Scales the raw power to the settings defined.
    * @param motorPosition left1, left2, right1, right2
    * @return Scaled power val to be used by motors
    */
   public static Double scale(String motorPosition, Double joystickY, Double joystickZ, Double fr_, Double tr_, Double fullr_){
+    return __scale__(joystickY, joystickZ, fr_, tr_, fullr_, motorPosition);
+  }
+
+  private static Double __scale__(Double jsY, Double jsZ, Double frr, Double tur, Double fulr, String motorPosition){
     int factor = 1;
     if (motorPosition == "left2" || motorPosition == "right2"){factor = -1;}
-    
-    return (joystickY * fr_ + (joystickZ * factor) * tr_) * fullr_;
+    return (jsY*frr + (jsZ * factor) * tur) * fulr;
   }
 
 }
