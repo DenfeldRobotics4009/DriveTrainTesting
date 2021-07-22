@@ -15,8 +15,8 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class ArcadeDriveTrain extends SubsystemBase {
 
   // Initialize drive instances here
-  public drive mainDrive =     new drive(10, 30, true);
-  public drive subDrive =      new drive(4, 20, true);
+  public drive mainDrive = new drive(10, 30, true);
+  public drive subDrive = new drive(4, 20, true);
   public drive reactionDrive = new drive(5, 40, false);
 
   public static Double fr, tr, fullr;
@@ -212,12 +212,16 @@ class drive {
    */
   public void periodic(drive... objects){
     for (drive i : objects){ // i.interrupt is added to check if i wants the other process to be interrupted
-      if (i.pr > pr && i.interrupt_){allow = false;} // Checks with other instances to see if it should be prioritized
-      else if (i.pr == pr && i.interrupt_){ // Checks with subpr if theyre equal
+
+      if (i.pr > pr && i.interrupt_){ // Checks with other instances to see if it should be prioritized
+        allow = false;
+      }else if (i.pr == pr && i.interrupt_){ // Checks with subpr if theyre equal
         if (i.subpr > pr){allow = false;}
         else{allow = true;}
+      }else{
+        allow = true;
       }
-      else{allow = true;}
+
     }
   }
 
@@ -286,9 +290,7 @@ class drive {
    * Sets the priority of this instance
    * @param priority int of prio. Higher the more favored
    */
-  public void setPriority(int priority){
-    pr = priority;
-  }
+  public void setPriority(int priority){pr = priority;}
 }
 
 class Speedmapper {
@@ -324,21 +326,15 @@ class Speedmapper {
    * @param Trate the twist rate, generally equal to twistRate.
    * @param tolerance the allowed difference between the val and joystick.
    */
-  public double map( String MotorPosition, Double encoderval, Double JoystickF, Double JoystickT){
+  public double map(String MotorPosition, Double encoderval, Double JoystickF, Double JoystickT){
 
     Double Frate = ArcadeDriveTrain.fr; 
     Double Trate = ArcadeDriveTrain.tr;
     Double FullRate = ArcadeDriveTrain.fullr;
 
     Double target = (ArcadeDriveTrain.scale(MotorPosition, JoystickF, JoystickT, Frate, Trate, FullRate) * pte);
-    // ((JoystickF * Frate + JoystickT * Trate) * FullRate) * pte;
-
-    if (encoderval < target - tolerance_){
-        count = count + delta_;
-    }
-    else if (encoderval > target + tolerance_){
-        count = count - delta_;
-    }
+         if (encoderval < target - tolerance_){count = count + delta_;}
+    else if (encoderval > target + tolerance_){count = count - delta_;}
 
     return ((JoystickF * Frate + JoystickT * Trate) * FullRate) + count;
   }

@@ -34,11 +34,13 @@ public class RobotContainer {
   public RobotContainer() {
     // Configure the button bindings
     configureButtonBindings();
-
+    // Define default commands
     driveTrain.setDefaultCommand(new ManualArcadeDrive( driveTrain,
       () -> driver.getY(),
-      () -> driver.getZ()
+      () -> driver.getZ(),
+      () -> driver.getTrigger()
     )
+
     );
   }
 
