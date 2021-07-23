@@ -9,6 +9,7 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.EncoderType;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -26,7 +27,7 @@ public class ArcadeDriveTrain extends SubsystemBase {
   
   public int countsPerRev = 42, PtoEScale = 5676;
 
-  public static Double pubJoystickY, pubJoystickZ;
+  public static Double pubJoystickY = 0.0, pubJoystickZ = 0.0;
 
   /** A new method of creating a drive train that
    * will allow more fluid controls and better
@@ -48,20 +49,20 @@ public class ArcadeDriveTrain extends SubsystemBase {
     tr = twistRate;
     fullr = fullRate;
 
-    left1 = new CANSparkMax(0, MotorType.kBrushless);
-    left2 = new CANSparkMax(1, MotorType.kBrushless);
-    right1 = new CANSparkMax(2, MotorType.kBrushless);
-    right2 = new CANSparkMax(3, MotorType.kBrushless);
-
-    mapLeft1 = new Speedmapper(PtoEScale, 0.1, 1);
-    mapLeft2 = new Speedmapper(PtoEScale, 0.1, 1);
-    mapRight1 = new Speedmapper(PtoEScale, 0.1, 1);
-    mapRight2 = new Speedmapper(PtoEScale, 0.1, 1);
+    left1 = new CANSparkMax (1, MotorType.kBrushless);
+    left2 = new CANSparkMax (2, MotorType.kBrushless);
+    right1 = new CANSparkMax(3, MotorType.kBrushless);
+    right2 = new CANSparkMax(4, MotorType.kBrushless);
 
     leftE1 = left1.getEncoder(EncoderType.kHallSensor, countsPerRev);
     leftE2 = left2.getEncoder(EncoderType.kHallSensor, countsPerRev);
     rightE1 = right1.getEncoder(EncoderType.kHallSensor, countsPerRev);
     rightE2 = right2.getEncoder(EncoderType.kHallSensor, countsPerRev);
+
+    mapLeft1 = new  Speedmapper(PtoEScale, 0.005, PtoEScale*0.05);
+    mapLeft2 = new  Speedmapper(PtoEScale, 0.005, PtoEScale*0.05);
+    mapRight1 = new Speedmapper(PtoEScale, 0.005, PtoEScale*0.05);
+    mapRight2 = new Speedmapper(PtoEScale, 0.005, PtoEScale*0.05);
 
     left1.setOpenLoopRampRate(1);
     left2.setOpenLoopRampRate(1);
@@ -182,7 +183,10 @@ public class ArcadeDriveTrain extends SubsystemBase {
 
   private static Double __scale__(Double jsY, Double jsZ, Double frr, Double tur, Double fulr, String motorPosition){
     int factor = 1;
-    if (motorPosition == "left2" || motorPosition == "right2"){factor = -1;}
+    if (motorPosition == "left1"){factor = 1;}
+    if (motorPosition == "left2"){factor = 1;}
+    if (motorPosition == "right1"){factor = -1;}
+    if (motorPosition == "right2"){factor = -1;}
     return (jsY*frr + (jsZ * factor) * tur) * fulr;
   }
 
@@ -297,8 +301,8 @@ class Speedmapper {
 
   //TODO: use PID?
 
-  public int pte = 5676, tolerance_ = 0;
-  public double count = 0, delta_ = 0.1;
+  public int pte = 5676;
+  public double count = 0, delta_ = 0.1, tolerance_ = 0;
 
   /**
    * A fix for speedmapping that uses a controlled base to map speeds from.
@@ -307,7 +311,7 @@ class Speedmapper {
    * @param delta change to try
    * @param tolerance allowed error
    */
-  public Speedmapper(int PtoEScale, Double delta, int tolerance){
+  public Speedmapper(int PtoEScale, Double delta, Double tolerance){
       pte = PtoEScale;
       count = 0; // Count starts always at 0
       delta_ = delta;
@@ -333,9 +337,15 @@ class Speedmapper {
     Double FullRate = ArcadeDriveTrain.fullr;
 
     Double target = (ArcadeDriveTrain.scale(MotorPosition, JoystickF, JoystickT, Frate, Trate, FullRate) * pte);
-         if (encoderval < target - tolerance_){count = count + delta_;}
+    double distance = target - encoderval;
+    DriverStation.reportWarning(" distance - " + distance, false);
+    // TODO scale based upon distace to target properly
+    // FIXME when using speedmapping the back wheels upon the robot move opposite to forward wheels
+         if (encoderval < target - tolerance_){count = count + delta_;} // uses distance to speed up correction process
     else if (encoderval > target + tolerance_){count = count - delta_;}
+         if (encoderval < target - tolerance_ * 5){count = count + delta_ * 5;} 
+    else if (encoderval > target + tolerance_ * 5){count = count - delta_ * 5;}
 
-    return ((JoystickF * Frate + JoystickT * Trate) * FullRate) + count;
+    return count;
   }
 }

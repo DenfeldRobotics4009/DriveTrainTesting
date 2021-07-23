@@ -12,7 +12,7 @@ import frc.robot.subsystems.ArcadeDriveTrain;
 
 public class ManualArcadeDrive extends CommandBase {
   ArcadeDriveTrain drive;
-  Double jsY, jsZ;
+  DoubleSupplier jsY, jsZ;
   Boolean trigger;
   /** Creates a new ManualArcadeDrive. */
   public ManualArcadeDrive(
@@ -22,8 +22,8 @@ public class ManualArcadeDrive extends CommandBase {
   ){
     drive = arcadeDriveTrain;
 
-    jsY = JoystickY.getAsDouble();
-    jsZ = JoystickZ.getAsDouble();
+    jsY = JoystickY;
+    jsZ = JoystickZ;
 
     trigger = JoystickTrigger.getAsBoolean();
 
@@ -36,8 +36,8 @@ public class ManualArcadeDrive extends CommandBase {
   @Override
   public void execute() {
     // Uses standerd arcade drive with no motor correction
-    if (trigger){drive.arcadeDrive(jsY*2, jsZ*2, false);} // Speed up
-    else {drive.arcadeDrive(jsY, jsZ, false);}
+    if (trigger){drive.arcadeDrive(jsZ.getAsDouble()*2, jsY .getAsDouble()*2, true);} // Speed up
+    else {drive.arcadeDrive(jsZ.getAsDouble(), jsY.getAsDouble(), true);}
   }
 
   // Called once the command ends or is interrupted.
