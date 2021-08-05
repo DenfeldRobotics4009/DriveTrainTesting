@@ -26,7 +26,7 @@ public class RobotContainer {
   Joystick operator = new Joystick(1);
 
   // The robot's subsystems and commands are defined here...
-  private final ArcadeDriveTrain driveTrain = new ArcadeDriveTrain(0.6, 0.4, 1.0);
+  private final ArcadeDriveTrain driveTrain = new ArcadeDriveTrain(0.4, 1.0, 1.0);
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -35,13 +35,11 @@ public class RobotContainer {
     // Configure the button bindings
     configureButtonBindings();
     // Define default commands
-    driveTrain.setDefaultCommand(new ManualArcadeDrive( driveTrain,
+    driveTrain.setDefaultCommand(new ManualArcadeDrive(driveTrain,
       () -> driver.getY(),
       () -> driver.getZ(),
       () -> driver.getTrigger()
-    )
-
-    );
+    ));
   }
 
   /**

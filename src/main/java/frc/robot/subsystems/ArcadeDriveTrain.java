@@ -9,7 +9,6 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.EncoderType;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
-import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -44,9 +43,9 @@ public class ArcadeDriveTrain extends SubsystemBase {
    * @param fullRate the full scale of the robots
    * movements. Recomended ≈ 0.5
    */
-  public ArcadeDriveTrain(Double forwardRate, Double twistRate, Double fullRate) {
-    fr = forwardRate;
-    tr = twistRate;
+  public ArcadeDriveTrain(Double twistRate, Double forwardRate, Double fullRate) {
+    fr = twistRate;
+    tr = forwardRate;
     fullr = fullRate;
 
     left1 = new CANSparkMax (1, MotorType.kBrushless);
@@ -59,10 +58,10 @@ public class ArcadeDriveTrain extends SubsystemBase {
     rightE1 = right1.getEncoder(EncoderType.kHallSensor, countsPerRev);
     rightE2 = right2.getEncoder(EncoderType.kHallSensor, countsPerRev);
 
-    mapLeft1 = new  Speedmapper(PtoEScale, 0.005, PtoEScale*0.05);
-    mapLeft2 = new  Speedmapper(PtoEScale, 0.005, PtoEScale*0.05);
-    mapRight1 = new Speedmapper(PtoEScale, 0.005, PtoEScale*0.05);
-    mapRight2 = new Speedmapper(PtoEScale, 0.005, PtoEScale*0.05);
+    mapLeft1 = new  Speedmapper(PtoEScale, 0.005, PtoEScale*0.2);
+    mapLeft2 = new  Speedmapper(PtoEScale, 0.005, PtoEScale*0.2);
+    mapRight1 = new Speedmapper(PtoEScale, 0.005, PtoEScale*0.2);
+    mapRight2 = new Speedmapper(PtoEScale, 0.005, PtoEScale*0.2);
 
     left1.setOpenLoopRampRate(1);
     left2.setOpenLoopRampRate(1);
@@ -97,13 +96,19 @@ public class ArcadeDriveTrain extends SubsystemBase {
    * @param joystickY tilt up and down
    * @param joystickZ tilt left and right
    * @param useSpeedMap if it should match all values of each motor to a target
+   * @param useSub if this method should use subdrive instead of maindrive
    */
-  public void arcadeDrive(Double joystickY, Double joystickZ, Boolean useSpeedMap){
+  public void arcadeDrive(Double joystickY, Double joystickZ, Boolean useSpeedMap, Boolean useSub){
     pubJoystickY = joystickY; // Grabs inputs regardless of priorities
     pubJoystickZ = joystickZ;
 
-    if (useSpeedMap){mainDrive.arcdrive(joystickY, joystickZ, mapLeft1, mapLeft2, mapRight1, mapRight2);}
-    else{mainDrive.arcdrive(joystickY, joystickZ);}
+    if (!useSub) {
+      if (useSpeedMap){mainDrive.arcdrive(joystickY, joystickZ, mapLeft1, mapLeft2, mapRight1, mapRight2);}
+      else{mainDrive.arcdrive(joystickY, joystickZ);}
+    } else {
+      if (useSpeedMap){subDrive.arcdrive(joystickY, joystickZ, mapLeft1, mapLeft2, mapRight1, mapRight2);}
+      else{mainDrive.arcdrive(joystickY, joystickZ);}
+    }
   }
 
   /**
@@ -244,9 +249,9 @@ class drive {
 
       ArcadeDriveTrain.drive(
         mapLeft1.map("left1",ArcadeDriveTrain.leftE1.getVelocity(), joystickY, joystickZ), 
-        mapLeft2.map("left2",ArcadeDriveTrain.leftE2.getVelocity(), joystickY, -joystickZ),
+        mapLeft2.map("left2",ArcadeDriveTrain.leftE2.getVelocity(), joystickY, joystickZ),
         mapRight1.map("right1",ArcadeDriveTrain.rightE1.getVelocity(), joystickY, joystickZ),
-        mapRight2.map("right2",ArcadeDriveTrain.rightE2.getVelocity(), joystickY, -joystickZ));
+        mapRight2.map("right2",ArcadeDriveTrain.rightE2.getVelocity(), joystickY, joystickZ));
       
     }
   }
@@ -313,7 +318,6 @@ class Speedmapper {
    */
   public Speedmapper(int PtoEScale, Double delta, Double tolerance){
       pte = PtoEScale;
-      count = 0; // Count starts always at 0
       delta_ = delta;
       tolerance_ = tolerance;
   }
@@ -331,21 +335,15 @@ class Speedmapper {
    * @param tolerance the allowed difference between the val and joystick.
    */
   public double map(String MotorPosition, Double encoderval, Double JoystickF, Double JoystickT){
-
     Double Frate = ArcadeDriveTrain.fr; 
     Double Trate = ArcadeDriveTrain.tr;
     Double FullRate = ArcadeDriveTrain.fullr;
 
     Double target = (ArcadeDriveTrain.scale(MotorPosition, JoystickF, JoystickT, Frate, Trate, FullRate) * pte);
     double distance = target - encoderval;
-    DriverStation.reportWarning(" distance - " + distance, false);
-    // TODO scale based upon distace to target properly
-    // FIXME when using speedmapping the back wheels upon the robot move opposite to forward wheels
-         if (encoderval < target - tolerance_){count = count + delta_;} // uses distance to speed up correction process
-    else if (encoderval > target + tolerance_){count = count - delta_;}
-         if (encoderval < target - tolerance_ * 5){count = count + delta_ * 5;} 
-    else if (encoderval > target + tolerance_ * 5){count = count - delta_ * 5;}
-
+    
+    if (encoderval < target - tolerance_ || encoderval > target + tolerance_){count = count + delta_ * ((distance) / 1000);} // uses distance to speed up correction process
+    else if (target == 0) {count = 0;} // Manually turn off
     return count;
   }
 }
